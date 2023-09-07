@@ -192,7 +192,7 @@ enum AggregationTemporality {
   AGGREGATION_TEMPORALITY_CUMULATIVE = 2;  // Cumulative aggregation over time.
 }
 
-// Represents a single profile type. It implicitely creates a connection between Stacktraces, Links, AttributeSets, values and timestamps. The connection is based on the order of the elements in the corresponding lists. This implicit connection creates an ephemeral structure called Sample. The length of reference lists must be the same. It is acceptable however for timestamps, links and attribute set lists to be empty. It is not acceptable for stacktrace or values lists to be empty.
+// Represents a single profile type. It implicitly creates a connection between Stacktraces, Links, AttributeSets, values and timestamps. The connection is based on the order of the elements in the corresponding lists. This implicit connection creates an ephemeral structure called Sample. The length of reference lists must be the same. It is acceptable however for timestamps, links and attribute set lists to be empty. It is not acceptable for stacktrace or values lists to be empty.
 message ProfileType {
   // aggregation_temporality describes if the aggregator reports delta changes
   // since last report time, or cumulative changes since a fixed start time.
