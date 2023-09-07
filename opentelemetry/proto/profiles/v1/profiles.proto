@@ -183,7 +183,9 @@ message Stacktrace {
   repeated uint32 location_indices = 1;
 }
 
-// Temporality of aggregation for the sample.
+// AggregationTemporality defines how a profile aggregator reports aggregated
+// values. It describes how those values relate to the time interval over
+// which they are aggregated.
 enum AggregationTemporality {
   AGGREGATION_TEMPORALITY_UNSPECIFIED = 0; // Temporality unspecified.
   AGGREGATION_TEMPORALITY_DELTA = 1;       // Delta aggregation over time.
@@ -192,16 +194,17 @@ enum AggregationTemporality {
 
 // Represents a single profile type. It implicitely creates a connection between Stacktraces, Links, AttributeSets, values and timestamps. The connection is based on the order of the elements in the corresponding lists. This implicit connection creates an ephemeral structure called Sample. The length of reference lists must be the same. It is acceptable however for timestamps, links and attribute set lists to be empty. It is not acceptable for stacktrace or values lists to be empty.
 message ProfileType {
-  // Temporality of aggregation for the sample.
+  // aggregation_temporality describes if the aggregator reports delta changes
+  // since last report time, or cumulative changes since a fixed start time.
   AggregationTemporality aggregation_temporality = 1;
 
-  // Profiler sample rate. [Optional].
+  // Profiler sample rate in Hz. This parameter indicates the frequency at which samples are collected, specifically for CPU profiles. Common values are 99 or 100. [Optional].
   uint64 sample_rate = 2;
 
-  // Index into the string table for the type of the sample.
+  // Index into the string table for the type of the sample. Example values are "cpu", "alloc_objects", "alloc_bytes", "block_contentions". Full list is defined in https://github.com/open-telemetry/semantic-conventions
   uint32 type_index = 3;
 
-  // Index into the string table for the unit of the sample.
+  // Index into the string table for the unit of the sample. Example values are "ms", "ns", "samples", "bytes". Full list is defined in https://github.com/open-telemetry/semantic-conventions
   uint32 unit_index = 4;
 
   // List of indices referring to Stacktraces in the Profile's stacktrace table.
