@@ -80,7 +80,7 @@ message ScopeProfiles {
 // Profile embeds one or more ProfileType messages — this allows to represent multiple profile types (e.g allocated objects and allocated bytes) in a single Profile message.
 message Profile {
   // A unique identifier for a profile. The ID is a 16-byte array. An ID with
-  // all zeroes is considered invalid.
+  // all zeroes is considered invalid. Profile ID can be used by other signals to uniquely identify a profile.
   //
   // This field is required.
   bytes profile_id = 1;
