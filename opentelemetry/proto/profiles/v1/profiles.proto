@@ -25,6 +25,61 @@ option java_package = "io.opentelemetry.proto.profiles.v1";
 option java_outer_classname = "ProfilesProto";
 option go_package = "go.opentelemetry.io/proto/otlp/profiles/v1";
 
+//                Relationships Diagram
+//
+// ┌──────────────────┐                LEGEND
+// │   ProfilesData   │
+// └──────────────────┘            ─────▶ embedded
+//   │
+//   │ 1-n                         ─────▷ referenced by index
+//   ▼
+// ┌──────────────────┐            ═════▷ share same index
+// │ ResourceProfiles │                   in ProfileType
+// └──────────────────┘                   reference lists
+//   │                                    creating "Sample"
+//   │ 1-n
+//   ▼
+// ┌──────────────────┐
+// │  ScopeProfiles   │
+// └──────────────────┘
+//   │
+//   │ 1-n
+//   ▼
+// ┌──────────────────┐
+// │     Profile      │
+// └──────────────────┘
+//   │
+//   │ 1-n
+//   ▼
+// ┌──────────────────┐
+// │   ProfileType    │
+// └──────────────────┘
+//   │                                1-1
+//   │ 1-n        ╔═════════════════════════════════════════╗
+//   ▽            ║                                         ▽
+// ┌──────────────────┐   1-1   ┌──────────────┐         ┌──────┐
+// │    Stacktrace    │ ══════▷ │ AttributeSet │         │ Link │
+// └──────────────────┘         └──────────────┘         └──────┘
+//   │                    1-1       △      △
+//   │ 1-n        ┌─────────────────┘      │ 1-1
+//   ▽            │                        │
+// ┌──────────────────┐   1-1   ┌──────────────┐
+// │     Location     │ ──────▷ │   Mapping    │
+// └──────────────────┘         └──────────────┘
+//   │
+//   │ 1-n
+//   ▼
+// ┌──────────────────┐
+// │       Line       │
+// └──────────────────┘
+//   │
+//   │ 1-1
+//   ▽
+// ┌──────────────────┐
+// │     Function     │
+// └──────────────────┘
+//
+
 // ProfilesData represents the profiles data that can be stored in a persistent storage,
 // OR can be embedded by other protocols that transfer OTLP profiles data but do not
 // implement the OTLP protocol.
@@ -97,8 +152,7 @@ message Profile {
   // This field is semantically required and it is expected that end_time >= start_time.
   fixed64 end_time_unix_nano = 3;
 
-  // attributes is a collection of key/value pairs. Note, global attributes
-  // like server name can be set using the resource API. Examples of attributes:
+  // attributes is a collection of key/value pairs. Attributes that are not specific to a particular profile (like server name) MUST be specified in Resource attributes instead. Examples of attributes:
   //
   //     "/http/user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36"
   //     "/http/server_latency": 300
@@ -223,9 +277,10 @@ message ProfileType {
   repeated uint64 timestamps = 14;
 }
 
+// SymbolFidelity enumerates the level of fidelity for symbol information in a profile.
 enum SymbolFidelity {
-  SYMBOL_FIDELITY_UNSPECIFIED = 0;
-  SYMBOL_FIDELITY_FULL = 1;
+  SYMBOL_FIDELITY_UNSPECIFIED = 0; // The symbol fidelity level is unspecified.
+  SYMBOL_FIDELITY_FULL = 1;        // The symbol fidelity is at its fullest level of detail.
 }
 
 // Describes the mapping from a binary to its original source code. These are stored in a lookup table in a Profile. These are referenced by index from other messages.
@@ -248,7 +303,7 @@ message Mapping {
   SymbolFidelity symbolic_info = 6;
 
   // Reference to an attribute set from the Profile's attribute set table.
-  repeated uint32 attribute_set_indices = 7;
+  uint32 attribute_set_index = 7;
 }
 
 // Describes function and line table debug information. These are stored in a lookup table in a Profile. These are referenced by index from other messages.
@@ -273,7 +328,7 @@ message Location {
   repeated Line line = 3;
 
   // Reference to an attribute set from the Profile's attribute set table.
-  repeated uint32 attribute_set_indices = 5;
+  uint32 attribute_set_index = 4;
 }
 
 // Represents a line in a source file. These are embedded within a Location message.
