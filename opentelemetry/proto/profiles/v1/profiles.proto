@@ -141,17 +141,34 @@ message Profile {
   // This field is required.
   bytes profile_id = 1;
 
-  // start_time_unix_nano is the start time of the profile.
-  // Value is UNIX Epoch time in nanoseconds since 00:00:00 UTC on 1 January 1970.
-  //
-  // This field is semantically required and it is expected that end_time >= start_time.
-  fixed64 start_time_unix_nano = 2;
+  // This is the original profile as retrieved from the profiler. For example, this can be a pprof or jfr encoded profile. The reason users might want to include these is because some formats are very generic and can not be easily converted to a more structured format.
+  // TODO: add a field that indicates the format of the original payload?
+  bytes original_payload = 2;
 
-  // end_time_unix_nano is the end time of the profile.
-  // Value is UNIX Epoch time in nanoseconds since 00:00:00 UTC on 1 January 1970.
-  //
-  // This field is semantically required and it is expected that end_time >= start_time.
-  fixed64 end_time_unix_nano = 3;
+  // A lookup table of Stacktraces. Other messages refer to Stacktraces in this table by index.
+  repeated Stacktrace stacktraces = 3;
+
+  // A lookup table of Mappings. Other messages refer to Mappings in this table by index.
+  repeated Mapping mappings = 4;
+
+  // A lookup table of Locations. Other messages refer to Locations in this table by index.
+  repeated Location locations = 5;
+
+  // A lookup table of Functions. Other messages refer to Functions in this table by index.
+  repeated Function functions = 6;
+
+  // A lookup table of Links to trace spans associated with this profile. Other messages refer to Links in this table by index. The first message must be an empty Link — this represents a null Link.
+  repeated Link links = 7;
+
+  // A lookup table of AttributeSets. Other messages refer to AttributeSets in this table by index. The first message must be an empty AttributeSet — this represents a null AttributeSet.
+  repeated AttributeSet attribute_sets = 8;
+
+  // A lookup table of strings. Other messages refer to strings in this table by index.
+  // The 0-th element must be an empty string ("").
+  repeated string string_table = 9;
+
+  // Array of sample lists included in this profile. Each sample list represents a list of samples of a particular profile type. The first item in this array is considered to be the "default" sample list.
+  repeated SampleList sample_lists = 10;
 
   // attributes is a collection of key/value pairs. Attributes that are not specific to a particular profile (like server name) MUST be specified in Resource attributes instead. Examples of attributes:
   //
@@ -164,41 +181,24 @@ message Profile {
   // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/common/README.md#attribute
   // Attribute keys MUST be unique (it is not allowed to have more than one
   // attribute with the same key).
-  repeated opentelemetry.proto.common.v1.KeyValue attributes = 4;
+  repeated opentelemetry.proto.common.v1.KeyValue attributes = 11;
 
   // dropped_attributes_count is the number of attributes that were discarded. Attributes
   // can be discarded because their keys are too long or because there are too many
   // attributes. If this value is 0, then no attributes were dropped.
-  uint32 dropped_attributes_count = 5;
+  uint32 dropped_attributes_count = 12;
 
-  // This is the original profile as retrieved from the profiler. For example, this can be a pprof or jfr encoded profile. The reason users might want to include these is because some formats are very generic and can not be easily converted to a more structured format.
-  // TODO: add a field that indicates the format of the original payload?
-  bytes original_payload = 6;
+  // start_time_unix_nano is the start time of the profile.
+  // Value is UNIX Epoch time in nanoseconds since 00:00:00 UTC on 1 January 1970.
+  //
+  // This field is semantically required and it is expected that end_time >= start_time.
+  fixed64 start_time_unix_nano = 13;
 
-  // A lookup table of Stacktraces. Other messages refer to Stacktraces in this table by index.
-  repeated Stacktrace stacktraces = 7;
-
-  // A lookup table of Mappings. Other messages refer to Mappings in this table by index.
-  repeated Mapping mappings = 8;
-
-  // A lookup table of Locations. Other messages refer to Locations in this table by index.
-  repeated Location locations = 9;
-
-  // A lookup table of Functions. Other messages refer to Functions in this table by index.
-  repeated Function functions = 10;
-
-  // A lookup table of Links to trace spans associated with this profile. Other messages refer to Links in this table by index. The first message must be an empty Link — this represents a null Link.
-  repeated Link links = 11;
-
-  // A lookup table of AttributeSets. Other messages refer to AttributeSets in this table by index. The first message must be an empty AttributeSet — this represents a null AttributeSet.
-  repeated AttributeSet attribute_sets = 12;
-
-  // A lookup table of strings. Other messages refer to strings in this table by index.
-  // The 0-th element must be an empty string ("").
-  repeated string string_table = 13;
-
-  // Array of sample lists included in this profile. Each sample list represents a list of samples of a particular profile type. The first item in this array is considered to be the "default" sample list.
-  repeated SampleList sample_lists = 14;
+  // end_time_unix_nano is the end time of the profile.
+  // Value is UNIX Epoch time in nanoseconds since 00:00:00 UTC on 1 January 1970.
+  //
+  // This field is semantically required and it is expected that end_time >= start_time.
+  fixed64 end_time_unix_nano = 14;
 }
 
 // Represents a relationship between a Sample (ephemeral structure represented by references to a Stacktrace, AttributeSet, Link + value and a timestamp) and a trace span. This allows for linking between specific Samples within a profile and traces.
@@ -249,33 +249,33 @@ enum AggregationTemporality {
 
 // Represents an array of samples of a single profile type. It implicitly creates a connection between Stacktraces, Links, AttributeSets, values and timestamps. The connection is based on the order of the elements in the corresponding lists. This implicit connection creates an ephemeral structure called Sample. The length of reference lists must be the same. It is acceptable however for timestamps, links and attribute set lists to be empty. It is not acceptable for stacktrace or values arrays to be empty.
 message SampleList {
-  // aggregation_temporality describes if the aggregator reports delta changes
-  // since last report time, or cumulative changes since a fixed start time.
-  AggregationTemporality aggregation_temporality = 1;
-
-  // Profiler sample rate in Hz. This parameter indicates the frequency at which samples are collected, specifically for CPU profiles. Common values are 99 or 100. [Optional].
-  uint64 sample_rate = 2;
-
-  // Index into the string table for the type of the sample. Example values are "cpu", "alloc_objects", "alloc_bytes", "block_contentions". Full list is defined in https://github.com/open-telemetry/semantic-conventions
-  uint32 type_index = 3;
-
-  // Index into the string table for the unit of the sample. Example values are "ms", "ns", "samples", "bytes". Full list is defined in https://github.com/open-telemetry/semantic-conventions
-  uint32 unit_index = 4;
-
   // List of indices referring to Stacktraces in the Profile's stacktrace table.
-  repeated uint32 stacktrace_indices = 10;
+  repeated uint32 stacktrace_indices = 1;
 
   // List of indices referring to Links in the Profile's link table. Each link corresponds to a Stacktrace in stacktrace_indices list. Length must match stacktrace_indices length. [Optional]
-  repeated uint32 link_indices = 11;
+  repeated uint32 link_indices = 2;
 
   // List of indices referring to AttributeSets in the Profile's attribute set table. Each attribute set corresponds to a Stacktrace in stacktrace_indices list. Length must match stacktrace_indices length. [Optional]
-  repeated uint32 attribute_set_indices = 12;
+  repeated uint32 attribute_set_indices = 3;
 
   // List of values. Each value corresponds to a Stacktrace in stacktrace_indices list. Length must match stacktrace_indices length.
-  repeated int64 values = 13;
+  repeated int64 values = 4;
 
   // List of timestamps. Each timestamp corresponds to a Stacktrace in stacktrace_indices list. Length must match stacktrace_indices length.
-  repeated uint64 timestamps = 14;
+  repeated uint64 timestamps = 5;
+
+  // Profiler sample rate in Hz. This parameter indicates the frequency at which samples are collected, specifically for CPU profiles. Common values are 99 or 100. [Optional].
+  uint64 sample_rate = 6;
+
+  // Index into the string table for the type of the sample. Example values are "cpu", "alloc_objects", "alloc_bytes", "block_contentions". Full list is defined in https://github.com/open-telemetry/semantic-conventions
+  uint32 type_index = 7;
+
+  // Index into the string table for the unit of the sample. Example values are "ms", "ns", "samples", "bytes". Full list is defined in https://github.com/open-telemetry/semantic-conventions
+  uint32 unit_index = 8;
+
+  // aggregation_temporality describes if the aggregator reports delta changes
+  // since last report time, or cumulative changes since a fixed start time.
+  AggregationTemporality aggregation_temporality = 9;
 }
 
 // SymbolFidelity enumerates the level of fidelity for symbol information in a profile.
@@ -311,16 +311,6 @@ message Mapping {
 
 // Describes function and line table debug information. These are stored in a lookup table in a Profile. These are referenced by index from other messages.
 message Location {
-  // The id of the corresponding profile.Mapping for this location.
-  // It can be unset if the mapping is unknown or not applicable for
-  // this profile type.
-  uint32 mapping_index = 1;
-  // The instruction address for this location, if available.  It
-  // should be within [Mapping.memory_start...Mapping.memory_limit]
-  // for the corresponding mapping. A non-leaf address may be in the
-  // middle of a call instruction. It is up to display tools to find
-  // the beginning of the instruction if necessary.
-  uint64 address = 2;
   // Multiple line indicates this location has inlined functions,
   // where the last entry represents the caller into which the
   // preceding entries were inlined.
@@ -328,7 +318,19 @@ message Location {
   // E.g., if memcpy() is inlined into printf:
   //    line[0].function_name == "memcpy"
   //    line[1].function_name == "printf"
-  repeated Line line = 3;
+  repeated Line line = 1;
+
+  // The instruction address for this location, if available.  It
+  // should be within [Mapping.memory_start...Mapping.memory_limit]
+  // for the corresponding mapping. A non-leaf address may be in the
+  // middle of a call instruction. It is up to display tools to find
+  // the beginning of the instruction if necessary.
+  uint64 address = 2;
+
+  // The id of the corresponding profile.Mapping for this location.
+  // It can be unset if the mapping is unknown or not applicable for
+  // this profile type.
+  uint32 mapping_index = 3;
 
   // Reference to an attribute set from the Profile's attribute set table.
   uint32 attribute_set_index = 4;
